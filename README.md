@@ -13,6 +13,24 @@ Ele combina o poder do **Captive Portal OpenNDS** com a praticidade do **Telegra
 
 ---
 
+# 🖼️ Demonstração
+
+## 📲 Imagens do Telegram
+
+<p align="center">
+  <img src="docs/screenshots/01.png" width="45%">
+  <img src="docs/screenshots/02.png" width="45%">
+</p>
+
+---
+
+## 🌐 Captive Portal (OpenNDS)
+
+<p align="center">
+  <img src="docs/screenshots/03.png" width="70%">
+</p>
+---
+
 # 🚀 Motivações do Projeto
 
 Este projeto nasceu da necessidade real de **segurança e controle sobre a infraestrutura de rede**.
@@ -125,7 +143,7 @@ Lista todos os dispositivos autorizados com seus respectivos nomes e endereços 
 ### 1. Acesse o roteador via SSH
 
 ```bash
-ssh root@192.168.1.1
+ssh root@(ip do openwrt)
 ```
 
 ---
@@ -196,23 +214,6 @@ Durante a instalação será solicitado:
 | `/status` | Mostra uptime do sistema |
 
 ---
-
-# 🖼️ Demonstração
-
-## 📲 Imagens do Telegram
-
-<p align="center">
-  <img src="docs/screenshots/01.png" width="45%">
-  <img src="docs/screenshots/02.png" width="45%">
-</p>
-
----
-
-## 🌐 Captive Portal (OpenNDS)
-
-<p align="center">
-  <img src="docs/screenshots/03.png" width="70%">
-</p>
 
 # 🔒 Segurança
 
