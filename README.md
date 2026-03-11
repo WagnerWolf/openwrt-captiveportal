@@ -228,3 +228,9 @@ Este projeto adiciona **uma camada extra de controle de acesso** sobre redes Ope
 # 👤 Autor
 
 **Wagner Wolf**  
+
+---
+
+# 📜 Licença
+
+Este projeto está licenciado sob a licença MIT.
