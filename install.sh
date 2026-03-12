@@ -221,9 +221,10 @@ echo ">>> Reiniciando serviços..."
 
 # --- MENSAGEM DE VALIDAÇÃO (Enviada apenas uma vez durante a instalação) ---
 HOST_NAME=$(uci get system.@system[0].hostname)
+MSG_TESTE="✅ *Wolf-WRT: Instalação Concluída!*\nO bot foi configurado com sucesso no host: *$HOST_NAME*.\n\n_Esta é uma mensagem única de teste._"
 curl -s -X POST "https://api.telegram.org/bot$MEU_TOKEN/sendMessage" \
     --data-urlencode "chat_id=$MEU_ID" \
-    --data-urlencode "text=✅ *Wolf-WRT: Instalação Concluída!*\nO bot foi configurado com sucesso no host: *$HOST_NAME*.\n\n_Esta é uma mensagem única de teste._" \
+    --data-urlencode "text=$(printf "$MSG_TESTE")" \
     --data-urlencode "parse_mode=Markdown" > /dev/null
 
 echo ""
