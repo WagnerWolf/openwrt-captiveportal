@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "======================================================="
-echo "   INSTALADOR WOLF-WRT SYSTEM (Versão Dinâmica)       "
+echo "   INSTALADOR WOLF-WRT CAPTIVE PORTAL SYSTEM "
 echo "======================================================="
 echo ""
 
