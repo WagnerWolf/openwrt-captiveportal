@@ -1,7 +1,7 @@
 #!/bin/sh
 
 echo "======================================================="
-echo "   INSTALADOR WOLF-WRT CAPTIVE PORTAL SYSTEM (Versão Final) "
+echo "   INSTALADOR WOLF-WRT SYSTEM (Versão Dinâmica)       "
 echo "======================================================="
 echo ""
 
@@ -29,6 +29,9 @@ ADMIN_ID="PLACEHOLDER_ID"
 URL="https://api.telegram.org/bot$TOKEN"
 OFFSET="0"
 
+# Obtém o hostname dinamicamente
+HOST_NAME=$(uci get system.@system[0].hostname)
+
 sendMessage() {
     TEXT_PAYLOAD=$(printf "$2")
     curl -s -X POST "$URL/sendMessage" \
@@ -36,9 +39,6 @@ sendMessage() {
         --data-urlencode "text=$TEXT_PAYLOAD" \
         --data-urlencode "parse_mode=Markdown" > /dev/null
 }
-
-HOST_NAME=$(uci get system.@system[0].hostname)
-sendMessage "$ADMIN_ID" "🤖 *Bot Wolf-WRT Online!* (Host: $HOST_NAME)"
 
 while true; do
     UPDATES=$(curl -s "$URL/getUpdates?offset=$OFFSET&timeout=60")
@@ -50,30 +50,37 @@ while true; do
 
         if [ "$CHAT_ID" = "$ADMIN_ID" ]; then
             if echo "$TEXT" | grep -qE "^/ajuda|^/start"; then
-                sendMessage "$CHAT_ID" "🛠 *Comandos:* /liberar, /bloquear, /vips, /status"
+                sendMessage "$CHAT_ID" "🛠 *Comandos [$HOST_NAME]:* /liberar, /bloquear, /vips, /status"
+            
             elif echo "$TEXT" | grep -q "^/vips"; then
                 MACS=$(uci show dhcp | grep ".mac=" | cut -d"'" -f2)
-                [ -z "$MACS" ] && sendMessage "$CHAT_ID" "📋 Vazio." || {
-                    RES="📋 *VIPs:*\n"
+                if [ -z "$MACS" ]; then
+                    sendMessage "$CHAT_ID" "📋 [$HOST_NAME] Nenhum VIP cadastrado."
+                else
+                    RES="📋 *VIPs em $HOST_NAME:*\n"
                     for mac in $MACS; do
                         ID=$(uci show dhcp | grep "$mac" | cut -d. -f2)
                         NOME=$(uci get dhcp.$ID.name 2>/dev/null || echo "Sem Nome")
                         RES="$RES👤 *$NOME*\n\`$mac\`\n\n"
                     done
                     sendMessage "$CHAT_ID" "$RES"
-                }
+                fi
+
             elif echo "$TEXT" | grep -q "^/liberar"; then
                 MAC=$(echo "$TEXT" | awk '{print $2}' | tr 'A-Z' 'a-z')
                 NAME=$(echo "$TEXT" | awk '{print $3}')
                 IP=$(grep -i "$MAC" /tmp/dhcp.leases | awk '{print $3}')
                 if [ -n "$IP" ]; then
                     uci add dhcp host >/dev/null
-                    uci set dhcp.@host[-1].name="$NAME"; uci set dhcp.@host[-1].ip="$IP"; uci set dhcp.@host[-1].mac="$MAC"
+                    uci set dhcp.@host[-1].name="$NAME"
+                    uci set dhcp.@host[-1].ip="$IP"
+                    uci set dhcp.@host[-1].mac="$MAC"
                     uci commit dhcp; /etc/init.d/dnsmasq reload; ndsctl trust "$MAC" 2>/dev/null
-                    sendMessage "$CHAT_ID" "✅ *$NAME* liberado!"
+                    sendMessage "$CHAT_ID" "✅ *$NAME* liberado em $HOST_NAME!"
                 else
-                    sendMessage "$CHAT_ID" "⚠️ MAC não ativo."
+                    sendMessage "$CHAT_ID" "⚠️ MAC não ativo em $HOST_NAME."
                 fi
+
             elif echo "$TEXT" | grep -q "^/bloquear"; then
                 MAC=$(echo "$TEXT" | awk '{print $2}' | tr 'A-Z' 'a-z')
                 ID=$(uci show dhcp | grep -i "$MAC" | head -n1 | cut -d. -f2)
@@ -81,10 +88,13 @@ while true; do
                 [ -n "$ID" ] && { uci delete dhcp.$ID; uci commit dhcp; /etc/init.d/dnsmasq reload; }
                 ndsctl untrust "$MAC" 2>/dev/null; ndsctl deauth "$MAC" 2>/dev/null
                 [ -n "$IP" ] && conntrack -D -s "$IP" 2>/dev/null
-                sendMessage "$CHAT_ID" "🚫 $MAC revogado."
+                sendMessage "$CHAT_ID" "🚫 $MAC revogado de $HOST_NAME."
+
             elif echo "$TEXT" | grep -q "^/status"; then
                  UP=$(uptime | awk '{print $3,$4}' | sed 's/,//')
-                 sendMessage "$CHAT_ID" "ℹ️ Uptime: $UP | VIPs: $(uci show dhcp | grep -c ".mac=")"
+                 CON=$(grep -c "." /tmp/dhcp.leases)
+                 VIPS=$(uci show dhcp | grep -c ".mac=")
+                 sendMessage "$CHAT_ID" "ℹ️ *Status $HOST_NAME:*\n🕒 Uptime: $UP\n📱 Conectados: $CON\n💎 VIPs: $VIPS"
             fi
         fi
     fi
@@ -108,6 +118,7 @@ chmod +x /root/sync_clients.sh
 cat << 'EOF' > /etc/opennds/theme_custom.sh
 #!/bin/sh
 TOKEN="PLACEHOLDER_TOKEN"; ADMIN_ID="PLACEHOLDER_ID"; INTERVALO=1800 
+HOST_NAME=$(uci get system.@system[0].hostname)
 RAW_INPUT="$1"
 CLEAN_INPUT=$(echo "$RAW_INPUT" | sed 's/%3[dD]/=/g; s/%3[fF]/?/g; s/%2[cC]/,/g; s/%2[6]/&/g')
 FAS_PAYLOAD=$(echo "$CLEAN_INPUT" | sed -n 's/.*fas=\([^&]*\).*/\1/p')
@@ -121,7 +132,7 @@ if [ "$CLIENT_MAC" != "Desconhecido" ]; then
     [ -f "$ARQUIVO_TRAVA" ] && { [ $((AGORA - $(cat "$ARQUIVO_TRAVA"))) -lt "$INTERVALO" ] && ENVIAR="nao"; }
     if [ "$ENVIAR" = "sim" ]; then
         echo "$AGORA" > "$ARQUIVO_TRAVA"
-        MSG="🔔 *Novo Acesso Detectado!*\nMAC: \`$CLIENT_MAC\`\n\n/liberar $CLIENT_MAC NOME"
+        MSG="🔔 *Acesso Detectado [$HOST_NAME]*\nMAC: \`$CLIENT_MAC\`\n\n/liberar $CLIENT_MAC NOME"
         curl -s -X POST "https://api.telegram.org/bot$TOKEN/sendMessage" --data-urlencode "chat_id=$ADMIN_ID" --data-urlencode "text=$(printf "$MSG")" --data-urlencode "parse_mode=Markdown" > /dev/null &
     fi
 fi
@@ -136,7 +147,7 @@ body{font-family:sans-serif;background:#f0f2f5;display:flex;flex-direction:colum
 .mac-box{background:#2d3436;color:#55efc4;padding:12px;border-radius:6px;font-family:monospace;font-size:1.2em;margin:15px 0;font-weight:bold}
 .footer{margin-top:25px;font-size:0.85rem;color:#b2bec3;border-top:1px solid #dfe6e9;padding-top:15px}
 </style></head>
-<body><div class="card"><h1>⛔ Acesso Restrito</h1><p>O administrador foi notificado.</p><div class="mac-box">$CLIENT_MAC</div>
+<body><div class="card"><h1>⛔ Acesso Restrito</h1><p>O administrador de rede foi notificado.</p><div class="mac-box">$CLIENT_MAC</div>
 <div class="footer">Wagner Wolf - Administrador de Rede</div></div></body></html>
 HTML
 exit 0
@@ -146,10 +157,26 @@ sed -i "s/PLACEHOLDER_TOKEN/$MEU_TOKEN/g" /etc/opennds/theme_custom.sh
 sed -i "s/PLACEHOLDER_ID/$MEU_ID/g" /etc/opennds/theme_custom.sh
 chmod +x /etc/opennds/theme_custom.sh
 
-# --- 4. PERSISTÊNCIA ---
+# --- 4. PERSISTÊNCIA E START ---
 sed -i '/bot_telegram.sh/d' /etc/rc.local; sed -i '/sync_clients.sh/d' /etc/rc.local
 sed -i '$i /root/sync_clients.sh &' /etc/rc.local; sed -i '$i /root/bot_telegram.sh &' /etc/rc.local
 echo "*/2 * * * * /root/sync_clients.sh" >> /etc/crontabs/root
-/etc/init.d/cron restart; /etc/init.d/opennds restart; /root/bot_telegram.sh &
 
-echo "✅ SISTEMA WOLF-WRT INSTALADO!"
+echo ">>> Reiniciando serviços..."
+/etc/init.d/cron restart
+/etc/init.d/opennds restart
+
+# Inicia o bot em background
+/root/bot_telegram.sh &
+
+# Envia mensagem de teste única para validar a instalação
+echo ">>> Enviando mensagem de teste para o Telegram..."
+HOST_NAME=$(uci get system.@system[0].hostname)
+curl -s -X POST "https://api.telegram.org/bot$MEU_TOKEN/sendMessage" \
+    --data-urlencode "chat_id=$MEU_ID" \
+    --data-urlencode "text=✅ *Teste de Conexão Wolf-WRT*\nO bot foi configurado com sucesso no host: *$HOST_NAME*" \
+    --data-urlencode "parse_mode=Markdown" > /dev/null
+
+echo ""
+echo "✅ SISTEMA INSTALADO COM SUCESSO!"
+echo "Verifique seu Telegram para confirmar o teste de comunicação."
