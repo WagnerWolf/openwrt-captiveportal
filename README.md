@@ -5,7 +5,8 @@
 ![Shell Script](https://img.shields.io/badge/Shell-Bash-green)
 ![Telegram Bot](https://img.shields.io/badge/Telegram-Bot-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
-![Status](https://img.shields.io/badge/Status-Experimental-orange)
+![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)
+![Maintained](https://img.shields.io/badge/Maintained-Yes-success)
 
 O **Captive Portal Wolf-WRT** é uma solução de gerenciamento de rede para roteadores baseados em **OpenWrt**.
 
